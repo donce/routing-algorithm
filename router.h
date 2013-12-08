@@ -10,16 +10,21 @@ using namespace std;
 
 
 struct Router {
+	vector<vector<Link> > links;
+	map<unsigned int, unsigned int> id;
+
+	bool graphChanged;
+
 	unsigned int getId(int ip);
+	int getNext(int dest);
+	void calcPaths();
 public:
+	Router();
 	unsigned int ip;
 
-	map<unsigned int, unsigned int> id;
-	vector<vector<Link> > links;
-
 	void addLink(Link l);
-	void sendPacket(Packet p);
+	void receivePacket(Packet *p);
+	void sendPacket(Packet *p);
 };
-
 
 #endif

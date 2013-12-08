@@ -9,33 +9,57 @@ struct Link {
 class Packet {
 public:
 	int from, to;
-	int source, dest;
-	int time;
+	unsigned long long time;
 	int type;
 	bool operator<(const Packet &p) {
 		return time < p.time;
+	}
+	virtual bool isDestination() {
+		return false;
+	}
+	virtual bool isBroadcast() {
+		return false;
+	}
+};
+
+class DestinationPacket : public Packet {
+public:
+	int source, dest;
+	virtual bool isDestination() {
+		return true;
+	}
+};
+
+class BroadcastPacket : public Packet {
+public:
+	virtual bool isBroadcast() {
+		return true;
 	}
 };
 
 class PacketComperator {
 public:
-	bool operator()(const Packet &a, const Packet &b) {
-		return a.time < b.time;
+	bool operator()(const Packet* a, const Packet* b) {
+		return a->time > b->time;
 	}
 };
 
-class RouterUpdatePacket {
-public:
-	int router;
-};
+//class BroadcastPacket : Packet {
 
-class LinkUpdatePacket {
+//};
+
+//class RouterUpdatePacket : public BroadcastPacket {
+//public:
+	//int router;
+//};
+
+class LinkUpdatePacket : public BroadcastPacket {
 public:
 	int linkFrom;
 	Link link;
 };
 
-class DataPacket : public Packet {
+class DataPacket : public DestinationPacket {
 public:
 	int data;
 };

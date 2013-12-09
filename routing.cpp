@@ -58,8 +58,7 @@ void initRouters(int routersCount, int routerLinks) {
 	for (int i = 0; i < routers.size(); ++i)
 		for (int j = 0; j < routers[i].links[routers[i].me].size(); ++j) {
 			Link *l = &routers[i].links[routers[i].me][j];
-			int to = l->dest;
-			//int to = 0;
+			routers[i].broadcastLink(routers[i].ip, l->dest, l->weight);
 			//printf("%u %u\n", routers[i].ip & 255, to & 255);
 			//printf("%d %d\n", i, l->dest);
 		}
@@ -71,7 +70,6 @@ void sendPacket(int from, int to, int data) {
 	packet->dest = routers[to].ip;
 	packet->data = data;
 	printf("SEND PACKET %d -> %d\n", packet->source & 255, packet->dest & 255);
-	//routers[from].sendPacket(packet);
 	routers[from].sendDestinationPacket(packet);
 }
 
@@ -88,12 +86,11 @@ void simulatePackets() {
 			usleep((p->time - n) / 1000);
 		}
 		while (now() < p->time);
-		//printf("%llu\n", now());
 		int to = ids[p->to];
-		printf("to %d\n", to);
+		printf("-----------------------------------------\n");
+		printf("Router 192.168.0.%d received packet.\n", p->to & 255);
 		routers[to].receivePacket(p);
-		//delete p;
-		printf("-done\n");
+		printf("-----------------------------------------\n");
 	}
 }
 
@@ -102,7 +99,12 @@ int main() {
 
 	simulatePackets();
 
-	for (int i = 0; i < 1; ++i) {
+	printf("\n");
+	printf("\n");
+	printf("\n");
+	printf("Network initialized.\n");
+
+	for (int i = 0; i < 6; ++i) {
 		//int from = random() % routers.size()
 		sendPacket(random() % routers.size(), random() % routers.size(), 101+i);
 	}
@@ -110,3 +112,4 @@ int main() {
 	simulatePackets();
 	return 0;
 }
+

@@ -113,7 +113,9 @@ void Router::receivePacket(Packet *p) {
 		}
 	}
 	else if (p->isBroadcast()) {
-		BroadcastPacket *bp = (BroadcastPacket*)p;
+		LinkUpdatePacket *bp = (LinkUpdatePacket*)p;
+		//parse
+		updateLink(bp->linkFrom, bp->link);
 	}
 	else
 		printf("unknown packet type\n");
@@ -123,8 +125,11 @@ void Router::receivePacket(Packet *p) {
 
 void Router::sendPacket(Packet *p) {
 	//printf("sending at %d\n", ip & 255);
-	addPacket(rand() % 4000 + 1000, p);
+	Link *l = getLink(ip, p->to);
+	addPacket(l->weight, p);
+	//addPacket(rand() % 4000 + 1000, p);
 }
+
 
 void Router::addLink(unsigned int to, int weight) {
 	int id = getId(to);
@@ -147,21 +152,36 @@ void Router::addLink(unsigned int to, int weight) {
 
 void Router::updateLink(unsigned int from, Link newl) {
 	LinkUpdatePacket *p = new LinkUpdatePacket();
-	addPacket(100, p);
-	Link *oldl = NULL;
-	for (int i = 0; i < links[me].size(); ++i)
-		if (links[me][i].dest == newl.dest) {
-			oldl = &links[me][i];
-		}
+	//addPacket(100, p);
+	//Link *oldl = NULL;
+	Link *oldl = getLink(from, newl.dest);
+	//for (int i = 0; i < links[me].size(); ++i)
+		//if (links[me][i].dest == newl.dest) {
+			//oldl = &links[me][i];
+		//}
 
 	if (oldl == NULL) {
 		//new
+		//nl.dest = to;
+		//nl.weight = weight;
+		links[getId(from)].push_back(newl);
+		printf("Adding new link.\n");
+
 		
 	}
 	else {
 		//update?
+		if (oldl->weight == newl.weight) {
+			printf("Old value\n");
+			return;
+		}
+		printf("Updating link value.\n");
 
 	}
+
+	graphChanged = true;
+	//resend
+	broadcastLink(from, newl.dest, newl.weight);
 }
 
 Link* Router::getLink(unsigned int from, unsigned int to) {
@@ -170,4 +190,22 @@ Link* Router::getLink(unsigned int from, unsigned int to) {
 		if (links[f][i].dest == to)
 			return &links[f][i];
 	return NULL;
+}
+
+void Router::broadcastLink(unsigned int from, unsigned int to, int weight) {
+	printf("broadcasting %d->%d %d\n", from & 255, to & 255, weight);
+
+	Link l;
+	l.dest = to;
+	l.weight = weight;
+
+	LinkUpdatePacket *p = new LinkUpdatePacket();
+	p->linkFrom = from;
+	p->link = l;
+
+	for (int i = 0; i < links[me].size(); ++i)
+		if (i != me) {
+			p->to = links[me][i].dest;
+			sendPacket(p);
+		}
 }

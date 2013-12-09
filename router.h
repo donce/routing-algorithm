@@ -34,6 +34,8 @@ public:
 	void receivePacket(Packet *p);
 	void sendDestinationPacket(DestinationPacket *p);
 	void sendPacket(Packet *p);
+	
+	void broadcastLink(unsigned int from, unsigned int to, int weight);
 };
 
 #endif

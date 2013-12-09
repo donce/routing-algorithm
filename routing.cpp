@@ -13,6 +13,7 @@ using namespace std;
 
 
 vector<Router> routers;
+map<unsigned int, int> ids;
 
 
 priority_queue<Packet*, vector<Packet*>, PacketComperator> packets;
@@ -24,9 +25,7 @@ unsigned long long now() {
 }
 
 void addPacket(int delay, Packet *packet) {
-	//printf("b %d d %d\n", packet.isBroadcast(), packet.isDestination());
-	packet->time = now();// + (long)delay * 1000000;
-	printf("packet added %llu\n", packet->time);
+	packet->time = now() + (long)delay * 1000000;
 	packets.push(packet);
 }
 
@@ -34,62 +33,80 @@ unsigned int getIp(unsigned char a, unsigned char b, unsigned char c, unsigned c
 	return a << 24 | b << 16 | c << 8 | d;
 }
 
+//char* getIpString(unsigned int ip) {
+	//printf("192.168.0.%d", ip);
+//}
 
 void initRouters(int routersCount, int routerLinks) {
 	vector<Link> links;
 	routers.resize(routersCount);
-	for (int i = 0; i < routers.size(); ++i)
+	for (int i = 0; i < routers.size(); ++i) {
 		routers[i].ip = getIp(192, 168, 0, i+1);
-		
+		routers[i].me = routers[i].getId(routers[i].ip);
+		ids[routers[i].ip] = i;
+	}
+
 	for (int i = 1; i < routers.size(); ++i)
-		for (int j = 0; j < routerLinks && j+1 < i; ++j) {
+		for (int j = 0; j < routerLinks && j < i; ++j) {
 			int to = rand() % i;
-			Link linkTo, linkFrom;
-			linkTo.dest = routers[to].ip;
-			linkFrom.dest = routers[i].ip;
-			linkTo.weight = linkFrom.weight = rand () % 1000;
-			routers[i].addLink(linkTo);
-			routers[to].addLink(linkFrom);
+			//printf("%d -> %d\n", i, to);
+			int w = rand () % 1000 + 100;
+			routers[i].addLink(routers[to].ip, w);
+			routers[to].addLink(routers[i].ip, w);
+		}
+
+	for (int i = 0; i < routers.size(); ++i)
+		for (int j = 0; j < routers[i].links[routers[i].me].size(); ++j) {
+			Link *l = &routers[i].links[routers[i].me][j];
+			int to = l->dest;
+			//int to = 0;
+			//printf("%u %u\n", routers[i].ip & 255, to & 255);
+			//printf("%d %d\n", i, l->dest);
 		}
 }
 
 void sendPacket(int from, int to, int data) {
 	DataPacket *packet = new DataPacket();
-	packet->from = routers[from].ip;
+	packet->source = packet->from = routers[from].ip;
 	packet->dest = routers[to].ip;
 	packet->data = data;
-	routers[from].sendPacket(packet);
+	printf("SEND PACKET %d -> %d\n", packet->source & 255, packet->dest & 255);
+	//routers[from].sendPacket(packet);
+	routers[from].sendDestinationPacket(packet);
 }
 
-int main() {
-	//DataPacket dp;
-	//Packet *packet = &dp;
-	//printf("b %d d %d\n", packet.isBroadcast(), packet.isDestination());
-	//printf("b %d d %d\n", packet->isBroadcast(), packet->isDestination());
-	//printf("%d", packet.isBroadcast());
-	//printf("%d", packet.isDestination());
-	//return 0;
-	//BroadcastPacket bp;
-	//printf("%d", bp.isBroadcast());
-	//return 0;
-	initRouters(5, 2);
-	for (int i = 0; i < 1; ++i)
-		sendPacket(random() % routers.size(), random() % routers.size(), i+1);
+void simulatePackets() {
 	while (!packets.empty()) {
 		Packet *p = packets.top();
 		packets.pop();
 		unsigned long long n = now();
-		printf("check    %llu\n", now());
-		printf("wait for %llu\n", p->time);
+		//printf("check    %llu\n", now());
+		//printf("wait for %llu\n", p->time);
 		if (n < p->time) {
 			//printf("sleep for %lus", p.time - n);
 			fflush(stdout);
 			usleep((p->time - n) / 1000);
 		}
 		while (now() < p->time);
-		printf("%llu\n", now());
-		routers[p->to].receivePacket(p);
-		delete p;
+		//printf("%llu\n", now());
+		int to = ids[p->to];
+		printf("to %d\n", to);
+		routers[to].receivePacket(p);
+		//delete p;
+		printf("-done\n");
 	}
+}
+
+int main() {
+	initRouters(5, 2);
+
+	simulatePackets();
+
+	for (int i = 0; i < 1; ++i) {
+		//int from = random() % routers.size()
+		sendPacket(random() % routers.size(), random() % routers.size(), 101+i);
+	}
+
+	simulatePackets();
 	return 0;
 }

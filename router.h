@@ -9,21 +9,30 @@
 using namespace std;
 
 
-struct Router {
-	vector<vector<Link> > links;
+class Router {
+
 	map<unsigned int, unsigned int> id;
 
 	bool graphChanged;
 
-	unsigned int getId(int ip);
+	vector<int> next;
 	int getNext(int dest);
 	void calcPaths();
+
+	Link* getLink(unsigned int from, unsigned int to);
 public:
 	Router();
+	int me;
 	unsigned int ip;
 
-	void addLink(Link l);
+	vector<int> ips;
+	vector<vector<Link> > links;
+	unsigned int getId(int ip);
+
+	void addLink(unsigned int to, int weight);
+	void updateLink(unsigned int from, Link nl);
 	void receivePacket(Packet *p);
+	void sendDestinationPacket(DestinationPacket *p);
 	void sendPacket(Packet *p);
 };
 

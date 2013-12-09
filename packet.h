@@ -8,7 +8,7 @@ struct Link {
 
 class Packet {
 public:
-	int from, to;
+	unsigned int from, to;
 	unsigned long long time;
 	int type;
 	bool operator<(const Packet &p) {
@@ -24,7 +24,7 @@ public:
 
 class DestinationPacket : public Packet {
 public:
-	int source, dest;
+	unsigned int source, dest;
 	virtual bool isDestination() {
 		return true;
 	}

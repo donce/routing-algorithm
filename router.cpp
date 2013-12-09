@@ -11,15 +11,19 @@ unsigned int Router::getId(int ip) {
 	map<unsigned int, unsigned int>::iterator it = id.find(ip);
 	if (it != id.end())
 		return it->second;
+	//printf("creating new id for %d\n", ip & 255);
 	links.push_back(vector<Link>());
-	printf("creating new id\n");
+	ips.push_back(ip);
+	next.push_back(-1);
+	id[ip] = links.size()-1;
+	return links.size()-1;
 }
 
 void Router::calcPaths() {
-	printf("calculating paths\n");
+	printf("Router %d: calculating paths\n", ip & 255);
 	int n = links.size();
 
-	printf("n %d\n", n);
+	//printf("n %d\n", n);
 	int *dist = new int[n];
 	bool *added = new bool[n];
 	int *back = new int[n];
@@ -30,17 +34,15 @@ void Router::calcPaths() {
 		back[i] = -1;
 	}
 
-	dist[0] = 0;
-	
-	int now = 0;
+	dist[me] = 0;
+	int now = me;
 
 	while (now != -1) {
-		printf("in %d\n", now);
 		added[now] = true;
 
 		for (int i = 0; i < links[now].size(); ++i) {
 			int newDist = dist[now] + links[now][i].weight;
-			int to = links[now][i].dest;
+			int to = getId(links[now][i].dest);
 			if (dist[to] == -1 || newDist < dist[to]) {
 				dist[to] = newDist;
 				back[to] = now;
@@ -52,6 +54,23 @@ void Router::calcPaths() {
 			if (!added[i] && dist[i] >= 0 && (now == -1 || dist[i] < dist[now]))
 				now = i;
 	}
+	
+	//backtrace
+	for (int i = 0; i < n; ++i) {
+		int now = i;
+		if (now == me) {
+			//me
+			next[i] = -1;
+		}
+		else {
+			//backtrace
+			while (back[now] != me) {
+				now = back[now];
+			}
+			next[i] = now;
+			//printf("result %d\n", next[i]);
+		}
+	}
 
 	delete dist;
 	delete back;
@@ -62,39 +81,93 @@ int Router::getNext(int dest) {
 		calcPaths();
 		graphChanged = false;
 	}
-	return -1;
+	int to = getId(dest);
+	//printf("get me %d\n", ip & 255);
+	return next[to];
+}
+
+void Router::sendDestinationPacket(DestinationPacket *dp) {
+	int to = getNext(dp->dest);
+	if (to == -1) {
+		printf("no known path\n");
+		return;
+	}
+	//printf("me %d to %d next %d\n", ip & 255, dp->dest & 255, ips[to] & 255);
+	dp->from = ip;
+	dp->to = ips[to];
+	sendPacket(dp);
 }
 
 void Router::receivePacket(Packet *p) {
+	//printf("receive\n");
 	if (p->isDestination()) {
-		DestinationPacket *dp = (DestinationPacket*)&p;
+		DataPacket *dp = (DataPacket*)p;
+        //printf("dest %d me %d\n", dp->dest & 255, ip & 255);
 		if (dp->dest == ip) {
 			printf("Packet received it's destination\n");
+			printf("Data: %d\n", dp->data);
+			//TODO: destroy
 		}
 		else {
-			int to = getNext(dp->dest);
-			if (to == -1) {
-				printf("no known path\n");
-				return;
-			}
-			sendPacket(dp);
+			sendDestinationPacket(dp);
 		}
 	}
 	else if (p->isBroadcast()) {
-
+		BroadcastPacket *bp = (BroadcastPacket*)p;
 	}
 	else
 		printf("unknown packet type\n");
 
-	printf("Packet received\n");
+	//printf("Packet received %d\n", ip & 255);
 }
 
 void Router::sendPacket(Packet *p) {
-	printf("router.sendPacket b %d d %d\n", p->isBroadcast(), p->isDestination());
+	//printf("sending at %d\n", ip & 255);
 	addPacket(rand() % 4000 + 1000, p);
 }
 
-void Router::addLink(Link l) {
-	int id = getId(l.dest);
+void Router::addLink(unsigned int to, int weight) {
+	int id = getId(to);
+	//printf("id %u\n", id);
+	Link *l = getLink(ip, to);
+	if (l == NULL) {
+		//printf("create new\n");
+		Link nl;
+		nl.dest = to;
+		nl.weight = weight;
+		links[me].push_back(nl);
+	}
+	else {
+		l->weight = weight;
+		//l->
+		//printf("already is\n");
 
+	}
+}
+
+void Router::updateLink(unsigned int from, Link newl) {
+	LinkUpdatePacket *p = new LinkUpdatePacket();
+	addPacket(100, p);
+	Link *oldl = NULL;
+	for (int i = 0; i < links[me].size(); ++i)
+		if (links[me][i].dest == newl.dest) {
+			oldl = &links[me][i];
+		}
+
+	if (oldl == NULL) {
+		//new
+		
+	}
+	else {
+		//update?
+
+	}
+}
+
+Link* Router::getLink(unsigned int from, unsigned int to) {
+	int f = getId(from);
+	for (int i = 0; i < links[f].size(); ++i)
+		if (links[f][i].dest == to)
+			return &links[f][i];
+	return NULL;
 }

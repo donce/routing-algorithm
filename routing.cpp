@@ -95,6 +95,7 @@ void simulatePackets() {
 }
 
 int main() {
+	//initRouters(2, 1);
 	initRouters(5, 2);
 
 	simulatePackets();
@@ -104,7 +105,7 @@ int main() {
 	printf("\n");
 	printf("Network initialized.\n");
 
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 5; ++i) {
 		//int from = random() % routers.size()
 		sendPacket(random() % routers.size(), random() % routers.size(), 101+i);
 	}

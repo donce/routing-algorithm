@@ -36,6 +36,7 @@ public:
 	void sendPacket(Packet *p);
 	
 	void broadcastLink(unsigned int from, unsigned int to, int weight);
+	bool insertLink(unsigned int from, Link link);
 };
 
 #endif

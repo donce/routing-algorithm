@@ -150,38 +150,46 @@ void Router::addLink(unsigned int to, int weight) {
 	}
 }
 
+bool Router::insertLink(unsigned int from, Link link) {
+	Link *oldl = getLink(from, link.dest);
+	if (oldl == NULL) {
+		printf("Adding new link.\n");
+		links[getId(from)].push_back(link);
+		return true;
+	}
+
+	if (oldl->weight == link.weight) {
+		printf("Old value\n");
+		return false;
+	}
+
+	printf("Updating link value.\n");
+	return false;
+}
+
 void Router::updateLink(unsigned int from, Link newl) {
 	LinkUpdatePacket *p = new LinkUpdatePacket();
-	//addPacket(100, p);
 	//Link *oldl = NULL;
-	Link *oldl = getLink(from, newl.dest);
-	//for (int i = 0; i < links[me].size(); ++i)
-		//if (links[me][i].dest == newl.dest) {
-			//oldl = &links[me][i];
-		//}
+	//Link *oldl = getLink(from, newl.dest);
+	
+	if (insertLink(from, newl)) {
+		//send
+		graphChanged = true;
+		broadcastLink(from, newl.dest, newl.weight);
+	}
 
-	if (oldl == NULL) {
+	//if (oldl == NULL) {
 		//new
 		//nl.dest = to;
+		//
 		//nl.weight = weight;
-		links[getId(from)].push_back(newl);
-		printf("Adding new link.\n");
-
-		
-	}
-	else {
+		//links[getId(from)].push_back(newl);
+	//}
+	//else {
 		//update?
-		if (oldl->weight == newl.weight) {
-			printf("Old value\n");
-			return;
-		}
-		printf("Updating link value.\n");
 
-	}
+	//}
 
-	graphChanged = true;
-	//resend
-	broadcastLink(from, newl.dest, newl.weight);
 }
 
 Link* Router::getLink(unsigned int from, unsigned int to) {
